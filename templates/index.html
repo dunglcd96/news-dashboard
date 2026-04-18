@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>World News Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif; background: #f2f2f7; color: #111; min-height: 100vh; }
+
+    /* ── DESKTOP LAYOUT ── */
+    @media (min-width: 641px) {
+      .mobile-header { display: none; }
+      .desktop-header { display: flex; }
+      .mobile-search-wrap { display: none; }
+      .desktop-filter { display: flex; }
+      .mobile-filter { display: none; }
+      .bottom-nav { display: none; }
+      .grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); padding: 1rem 2rem 2rem; gap: 1rem; }
+      .card { flex-direction: column; border-radius: 14px; }
+      .card-image { width: 100%; height: 180px; border-radius: 0; }
+      .card-image-placeholder { width: 100%; height: 180px; border-radius: 0; }
+      .card-summary { display: block !important; }
+      .stats-bar { padding: 1rem 2rem 0.5rem; }
+    }
+
+    /* ── DESKTOP HEADER ── */
+    .desktop-header { display: none; background: #111; color: white; padding: 1rem 2rem; align-items: center; justify-content: space-between; gap: 1rem; }
+    .desktop-header h1 { font-size: 1.2rem; font-weight: 600; }
+    .desktop-header .sub { font-size: 0.8rem; font-weight: 400; color: #aaa; margin-left: 0.5rem; }
+    .desktop-header .right { display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
+    .desktop-header .updated { font-size: 0.75rem; color: #888; }
+    .refresh-btn-desk { background: #333; color: white; border: none; padding: 0.35rem 0.9rem; border-radius: 8px; font-size: 0.8rem; cursor: pointer; }
+
+    /* ── DESKTOP FILTER ── */
+    .desktop-filter { background: white; border-bottom: 1px solid #e5e5e5; padding: 0.6rem 2rem; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .filter-label { font-size: 0.72rem; color: #aaa; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
+    .filter-sep { width: 1px; background: #e5e5e5; height: 18px; margin: 0 0.25rem; flex-shrink: 0; }
+    .filter-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .filter-btn { border: 1px solid #e0e0e0; background: white; padding: 0.28rem 0.8rem; border-radius: 999px; font-size: 0.78rem; cursor: pointer; white-space: nowrap; color: #333; transition: all 0.15s; }
+    .filter-btn:hover { background: #f4f4f5; }
+    .filter-btn.active { background: #111; color: white; border-color: #111; }
+    .filter-btn.cat-active { color: white; border-color: transparent; }
+    .search-desktop { margin-left: auto; }
+    .search-desktop input { border: 1px solid #ddd; border-radius: 8px; padding: 0.3rem 0.75rem; font-size: 0.82rem; width: 190px; outline: none; }
+
+    /* ════════════════════════════
+       MOBILE STYLES
+    ════════════════════════════ */
+
+    /* iOS-style header */
+    .mobile-header {
+      background: #fff;
+      border-bottom: 0.5px solid #c8c8cc;
+      padding: 12px 16px 8px;
+      padding-top: calc(12px + env(safe-area-inset-top));
+    }
+    .mobile-header-top {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
+    }
+    .mobile-title { font-size: 1.05rem; font-weight: 700; color: #111; }
+    .mobile-by { font-size: 0.72rem; color: #888; margin-top: 1px; }
+    .mobile-updated { font-size: 0.7rem; color: #aaa; }
+    .refresh-btn-mobile {
+      background: #f2f2f7; color: #111; border: none;
+      padding: 0.3rem 0.75rem; border-radius: 8px; font-size: 0.8rem;
+      font-weight: 500; cursor: pointer; flex-shrink: 0;
+    }
+    .refresh-btn-mobile:active { background: #e0e0e5; }
+
+    /* iOS search bar */
+    .mobile-search-wrap {
+      background: #fff;
+      padding: 8px 16px 10px;
+      border-bottom: 0.5px solid #c8c8cc;
+    }
+    .mobile-search-inner {
+      display: flex; align-items: center; background: #e9e9eb;
+      border-radius: 10px; padding: 7px 10px; gap: 6px;
+    }
+    .mobile-search-inner svg { flex-shrink: 0; opacity: 0.45; }
+    .mobile-search-inner input {
+      border: none; background: transparent; font-size: 0.92rem;
+      width: 100%; outline: none; color: #111;
+    }
+    .mobile-search-inner input::placeholder { color: #8e8e93; }
+
+    /* iOS segment filter */
+    .mobile-filter { background: #fff; border-bottom: 0.5px solid #c8c8cc; }
+    .mobile-filter-section { padding: 8px 16px 6px; }
+    .mobile-filter-label { font-size: 0.68rem; font-weight: 600; color: #8e8e93; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; }
+    .mobile-filter-scroll { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+    .mobile-filter-scroll::-webkit-scrollbar { display: none; }
+    .mobile-chip {
+      border: 1.5px solid #e0e0e0; background: #fff;
+      padding: 5px 14px; border-radius: 999px; font-size: 0.82rem;
+      cursor: pointer; white-space: nowrap; color: #333; flex-shrink: 0;
+      font-weight: 500; transition: all 0.15s;
+    }
+    .mobile-chip.active { background: #111; color: #fff; border-color: #111; }
+    .mobile-chip.cat-active { color: #fff; border-color: transparent; }
+    .mobile-divider { height: 0.5px; background: #e5e5ea; margin: 0 16px; }
+
+    /* Stats */
+    .stats-bar { display: flex; gap: 8px; padding: 10px 16px 6px; overflow-x: auto; scrollbar-width: none; }
+    .stats-bar::-webkit-scrollbar { display: none; }
+    .stat-card { background: white; border: 0.5px solid #c8c8cc; border-radius: 10px; padding: 7px 12px; flex-shrink: 0; }
+    .stat-card .label { font-size: 0.65rem; color: #8e8e93; margin-bottom: 1px; white-space: nowrap; }
+    .stat-card .value { font-size: 1.15rem; font-weight: 600; }
+
+    /* Grid */
+    .grid { display: grid; gap: 0; padding: 0 0 80px; }
+
+    /* Mobile card — newspaper row style */
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: 1fr; background: #f2f2f7; }
+      .card {
+        background: white; border: none; border-radius: 0;
+        border-bottom: 0.5px solid #e5e5ea;
+        display: flex; flex-direction: row; align-items: stretch;
+        padding: 12px 16px; gap: 12px; min-height: 100px;
+      }
+      .card:first-child { border-top: 0.5px solid #e5e5ea; margin-top: 8px; }
+      .card:active { background: #f9f9f9; }
+      .card-thumb-wrap { flex-shrink: 0; width: 90px; height: 90px; border-radius: 8px; overflow: hidden; align-self: center; }
+      .card-image { width: 90px; height: 90px; object-fit: cover; display: block; }
+      .card-image-placeholder { width: 90px; height: 90px; background: #e9e9eb; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
+      .card-body { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; padding: 0; }
+      .card-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+      .source-badge { font-size: 0.66rem; font-weight: 700; padding: 2px 7px; border-radius: 5px; color: white; white-space: nowrap; }
+      .cat-badge { font-size: 0.66rem; padding: 2px 7px; border-radius: 5px; font-weight: 600; white-space: nowrap; }
+      .time { font-size: 0.68rem; color: #8e8e93; margin-left: auto; white-space: nowrap; }
+      .card-title { font-size: 0.88rem; font-weight: 600; line-height: 1.35; color: #111; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+      .card-title a { color: inherit; text-decoration: none; }
+      .card-summary { display: none; }
+      .bias-tag { font-size: 0.64rem; color: #c7c7cc; border: none; padding: 0; background: none; align-self: flex-start; margin-top: auto; }
+    }
+
+    /* Bottom nav iOS style */
+    .bottom-nav {
+      display: none;
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(255,255,255,0.92);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      border-top: 0.5px solid #c8c8cc;
+      padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+      z-index: 100;
+    }
+    @media (max-width: 640px) { .bottom-nav { display: flex; } }
+    .bottom-nav button {
+      flex: 1; background: none; border: none; padding: 2px 0;
+      font-size: 0.62rem; color: #8e8e93; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      font-family: inherit;
+    }
+    .bottom-nav button.active { color: #111; }
+    .bottom-nav button svg { width: 22px; height: 22px; stroke-width: 1.6; }
+
+    .no-results { padding: 3rem 1rem; text-align: center; color: #8e8e93; font-size: 0.9rem; grid-column: 1/-1; }
+
+    /* group cards visually on mobile */
+    @media (max-width: 640px) {
+      .card-group { background: white; margin: 0 0 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- MOBILE HEADER -->
+<div class="mobile-header">
+  <div class="mobile-header-top">
+    <div>
+      <div class="mobile-title">World News Dashboard</div>
+      <div class="mobile-by">by Dũng Lâm</div>
+    </div>
+    <button class="refresh-btn-mobile" onclick="location.reload()">Làm mới</button>
+  </div>
+  <div class="mobile-updated">Cập nhật: {{ now }}</div>
+</div>
+
+<!-- DESKTOP HEADER -->
+<div class="desktop-header">
+  <h1>World News Dashboard <span class="sub">by Dũng Lâm</span></h1>
+  <div class="right">
+    <span class="updated">{{ now }}</span>
+    <button class="refresh-btn-desk" onclick="location.reload()">Làm mới</button>
+  </div>
+</div>
+
+<!-- MOBILE SEARCH -->
+<div class="mobile-search-wrap">
+  <div class="mobile-search-inner">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input type="search" id="searchMobile" placeholder="Tìm kiếm tin tức..." oninput="applyFilters()">
+  </div>
+</div>
+
+<!-- MOBILE FILTER -->
+<div class="mobile-filter" id="mobileFilter">
+  <div class="mobile-filter-section">
+    <div class="mobile-filter-label">Nguồn</div>
+    <div class="mobile-filter-scroll" id="sourceChips">
+      <button class="mobile-chip active" onclick="filterSource('all',this)">Tất cả</button>
+      {% for source in sources %}
+      <button class="mobile-chip" onclick="filterSource('{{ source }}',this)">{{ source }}</button>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="mobile-divider"></div>
+  <div class="mobile-filter-section">
+    <div class="mobile-filter-label">Chủ đề</div>
+    <div class="mobile-filter-scroll" id="catChips">
+      <button class="mobile-chip active" onclick="filterCategory('all',this)">Tất cả</button>
+      {% for cat in categories %}
+      <button class="mobile-chip" onclick="filterCategory('{{ cat }}',this)" data-cat="{{ cat }}">{{ cat }}</button>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- DESKTOP FILTER -->
+<div class="desktop-filter">
+  <span class="filter-label">Nguồn</span>
+  <div class="filter-row" id="sourceFiltersDesk">
+    <button class="filter-btn active" onclick="filterSource('all',this)">Tất cả</button>
+    {% for source in sources %}
+    <button class="filter-btn" onclick="filterSource('{{ source }}',this)">{{ source }}</button>
+    {% endfor %}
+  </div>
+  <div class="filter-sep"></div>
+  <span class="filter-label">Chủ đề</span>
+  <div class="filter-row" id="catFiltersDesk">
+    <button class="filter-btn active" onclick="filterCategory('all',this)">Tất cả</button>
+    {% for cat in categories %}
+    <button class="filter-btn" onclick="filterCategory('{{ cat }}',this)" data-cat="{{ cat }}">{{ cat }}</button>
+    {% endfor %}
+  </div>
+  <div class="search-desktop">
+    <input type="text" id="searchDesktop" placeholder="Tìm từ khóa..." oninput="applyFilters()">
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat-card"><div class="label">Bài viết</div><div class="value" id="totalCount">{{ articles|length }}</div></div>
+  <div class="stat-card"><div class="label">Nguồn tin</div><div class="value">{{ sources|length }}</div></div>
+  <div class="stat-card"><div class="label">Trong vòng</div><div class="value">7 ngày</div></div>
+</div>
+
+<!-- NEWS GRID -->
+<div class="grid" id="newsGrid">
+  {% for article in articles %}
+  <div class="card" data-source="{{ article.source }}" data-category="{{ article.category }}">
+    <div class="card-thumb-wrap">
+      {% if article.image %}
+      <img class="card-image" src="{{ article.image }}" alt="" loading="lazy" onerror="this.parentNode.innerHTML='<div class=\'card-image-placeholder\'><svg width=\'28\' height=\'28\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'#aaa\' stroke-width=\'1.5\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><circle cx=\'8.5\' cy=\'8.5\' r=\'1.5\'/><path d=\'M21 15l-5-5L5 21\'/></svg></div>'">
+      {% else %}
+      <div class="card-image-placeholder">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      </div>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <div class="card-meta">
+        <span class="source-badge" style="background:{{ article.color }}">{{ article.source }}</span>
+        <span class="cat-badge" data-cat="{{ article.category }}">{{ article.category }}</span>
+        <span class="time">{{ article.published }}</span>
+      </div>
+      <div class="card-title"><a href="{{ article.link }}" target="_blank">{{ article.title }}</a></div>
+      <div class="card-summary" style="font-size:0.81rem;color:#666;line-height:1.5;">{% if article.summary %}{{ article.summary }}...{% endif %}</div>
+      <span class="bias-tag">{{ article.bias }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="active" onclick="setTab('all',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+    Tất cả
+  </button>
+  <button onclick="setTab('search',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    Tìm kiếm
+  </button>
+  <button onclick="setTab('source',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+    Nguồn
+  </button>
+  <button onclick="setTab('cat',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Chủ đề
+  </button>
+</nav>
+
+<script>
+const CAT_COLORS = {
+  "Politics":       { bg:"#E6F1FB", text:"#0C447C" },
+  "Economy":        { bg:"#EAF3DE", text:"#27500A" },
+  "War & Conflict": { bg:"#FCEBEB", text:"#791F1F" },
+  "Technology":     { bg:"#EEEDFE", text:"#3C3489" },
+  "Asia":           { bg:"#E1F5EE", text:"#085041" },
+  "Climate":        { bg:"#FAEEDA", text:"#633806" },
+  "Health":         { bg:"#FBEAF0", text:"#72243E" },
+  "General":        { bg:"#F1EFE8", text:"#444441" },
+};
+
+document.querySelectorAll('.cat-badge').forEach(b => {
+  const c = CAT_COLORS[b.dataset.cat];
+  if (c) { b.style.background = c.bg; b.style.color = c.text; }
+});
+
+let activeSource = 'all', activeCategory = 'all';
+
+function filterSource(src, btn) {
+  activeSource = src;
+  document.querySelectorAll('#sourceChips .mobile-chip, #sourceFiltersDesk .filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('[data-src="' + src + '"], #sourceChips .mobile-chip, #sourceFiltersDesk .filter-btn').forEach(b => {
+    if (b.textContent.trim() === btn.textContent.trim()) b.classList.add('active');
+  });
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function filterCategory(cat, btn) {
+  activeCategory = cat;
+  document.querySelectorAll('#catChips .mobile-chip, #catFiltersDesk .filter-btn').forEach(b => {
+    b.classList.remove('cat-active','active'); b.style.background=''; b.style.color='';
+  });
+  if (cat === 'all') {
+    document.querySelectorAll('#catChips .mobile-chip:first-child, #catFiltersDesk .filter-btn:first-child').forEach(b => b.classList.add('active'));
+  } else {
+    document.querySelectorAll('#catChips .mobile-chip[data-cat="'+cat+'"], #catFiltersDesk .filter-btn[data-cat="'+cat+'"]').forEach(b => {
+      b.classList.add('cat-active');
+      const c = CAT_COLORS[cat];
+      if (c) { b.style.background = c.text; b.style.color = 'white'; }
+    });
+  }
+  applyFilters();
+}
+
+function applyFilters() {
+  const s = (document.getElementById('searchMobile').value || document.getElementById('searchDesktop').value).toLowerCase();
+  let v = 0;
+  document.querySelectorAll('.card').forEach(card => {
+    const ok = (activeSource==='all'||card.dataset.source===activeSource)
+             &&(activeCategory==='all'||card.dataset.category===activeCategory)
+             &&(!s||card.innerText.toLowerCase().includes(s));
+    card.style.display = ok ? '' : 'none';
+    if (ok) v++;
+  });
+  document.getElementById('totalCount').textContent = v;
+  const grid = document.getElementById('newsGrid');
+  const ex = grid.querySelector('.no-results');
+  if (v===0&&!ex){const m=document.createElement('div');m.className='no-results';m.textContent='Không tìm thấy bài viết nào.';grid.appendChild(m);}
+  else if(v>0&&ex)ex.remove();
+}
+
+function setTab(tab, btn) {
+  document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const mf = document.getElementById('mobileFilter');
+  const sw = document.querySelector('.mobile-search-wrap');
+  if (tab==='search') {
+    sw.style.display='block'; mf.style.display='none';
+    document.getElementById('searchMobile').focus();
+  } else {
+    sw.style.display=''; mf.style.display='';
+    if (tab==='source') document.getElementById('sourceChips').scrollIntoView({behavior:'smooth',block:'nearest'});
+    if (tab==='cat') document.getElementById('catChips').scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+}
+</script>
+</body>
+</html>
