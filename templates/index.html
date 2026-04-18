@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>World News Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f4f5; color: #111; min-height: 100vh; }
+
+    header { background: #111; color: white; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 1.2rem; font-weight: 600; letter-spacing: 0.05em; }
+    .last-updated { font-size: 0.8rem; color: #888; }
+
+    .toolbar { background: white; border-bottom: 1px solid #e5e5e5; padding: 0.6rem 2rem; display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+    .toolbar-label { font-size: 0.75rem; color: #999; margin-right: 0.25rem; white-space: nowrap; }
+    .toolbar-sep { width: 1px; background: #e5e5e5; height: 20px; margin: 0 0.5rem; }
+
+    .filter-btn { border: 1px solid #ddd; background: white; padding: 0.28rem 0.7rem; border-radius: 999px; font-size: 0.78rem; cursor: pointer; transition: all 0.15s; color: #333; white-space: nowrap; }
+    .filter-btn:hover { background: #f4f4f5; }
+    .filter-btn.active { background: #111; color: white; border-color: #111; }
+    .filter-btn.cat-active { color: white; border-color: transparent; }
+
+    .search-box { margin-left: auto; border: 1px solid #ddd; border-radius: 8px; padding: 0.3rem 0.75rem; font-size: 0.85rem; width: 200px; outline: none; }
+    .search-box:focus { border-color: #888; }
+
+    .stats-bar { display: flex; gap: 0.75rem; padding: 1rem 2rem 0.5rem; flex-wrap: wrap; }
+    .stat-card { background: white; border: 1px solid #e5e5e5; border-radius: 10px; padding: 0.6rem 1rem; min-width: 100px; }
+    .stat-card .label { font-size: 0.72rem; color: #888; margin-bottom: 2px; }
+    .stat-card .value { font-size: 1.3rem; font-weight: 600; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; padding: 1rem 2rem 2rem; }
+
+    .card { background: white; border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; transition: border-color 0.15s; }
+    .card:hover { border-color: #bbb; }
+
+    .card-image { width: 100%; height: 180px; object-fit: cover; display: block; background: #f0f0f0; }
+    .card-image-placeholder { width: 100%; height: 180px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; }
+    .card-image-placeholder svg { opacity: 0.25; }
+
+    .card-body { padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
+
+    .card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .source-badge { font-size: 0.7rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; color: white; white-space: nowrap; }
+    .cat-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; font-weight: 500; white-space: nowrap; }
+    .time { font-size: 0.73rem; color: #999; margin-left: auto; white-space: nowrap; }
+
+    .card-title { font-size: 0.93rem; font-weight: 500; line-height: 1.4; color: #111; }
+    .card-title a { color: inherit; text-decoration: none; }
+    .card-title a:hover { color: #1a6dcc; }
+
+    .card-summary { font-size: 0.81rem; color: #666; line-height: 1.5; }
+    .bias-tag { font-size: 0.68rem; color: #999; border: 1px solid #e5e5e5; border-radius: 4px; padding: 1px 6px; align-self: flex-start; margin-top: auto; padding-top: 0.25rem; }
+
+    .no-results { grid-column: 1 / -1; text-align: center; padding: 3rem; color: #999; font-size: 0.95rem; }
+
+    .refresh-btn { background: #222; color: white; border: none; padding: 0.3rem 0.9rem; border-radius: 8px; font-size: 0.8rem; cursor: pointer; }
+    .refresh-btn:hover { background: #444; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>World News Dashboard</h1>
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <span class="last-updated">Cập nhật: {{ now }}</span>
+    <button class="refresh-btn" onclick="location.reload()">Làm mới</button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <span class="toolbar-label">Nguồn:</span>
+  <button class="filter-btn active" onclick="filterSource('all', this)">Tất cả</button>
+  {% for source in sources %}
+  <button class="filter-btn" onclick="filterSource('{{ source }}', this)">{{ source }}</button>
+  {% endfor %}
+
+  <div class="toolbar-sep"></div>
+
+  <span class="toolbar-label">Chủ đề:</span>
+  <button class="filter-btn active" onclick="filterCategory('all', this)">Tất cả</button>
+  {% for cat in categories %}
+  <button class="filter-btn" onclick="filterCategory('{{ cat }}', this)" data-cat="{{ cat }}">{{ cat }}</button>
+  {% endfor %}
+
+  <input class="search-box" type="text" id="searchBox" placeholder="Tìm từ khóa..." oninput="applyFilters()">
+</div>
+
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="label">Bài viết hiển thị</div>
+    <div class="value" id="totalCount">{{ articles|length }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Nguồn tin</div>
+    <div class="value">{{ sources|length }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Trong vòng</div>
+    <div class="value">7 ngày</div>
+  </div>
+</div>
+
+<div class="grid" id="newsGrid">
+  {% for article in articles %}
+  <div class="card" data-source="{{ article.source }}" data-category="{{ article.category }}">
+
+    {% if article.image %}
+    <img class="card-image"
+         src="{{ article.image }}"
+         alt="{{ article.title }}"
+         loading="lazy"
+         onerror="this.parentNode.replaceChild(makePlaceholder(), this)">
+    {% else %}
+    <div class="card-image-placeholder">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+        <path d="M21 15l-5-5L5 21"/>
+      </svg>
+    </div>
+    {% endif %}
+
+    <div class="card-body">
+      <div class="card-header">
+        <span class="source-badge" style="background: {{ article.color }}">{{ article.source }}</span>
+        <span class="cat-badge" data-cat="{{ article.category }}">{{ article.category }}</span>
+        <span class="time">{{ article.published }}</span>
+      </div>
+      <div class="card-title">
+        <a href="{{ article.link }}" target="_blank">{{ article.title }}</a>
+      </div>
+      {% if article.summary %}
+      <div class="card-summary">{{ article.summary }}...</div>
+      {% endif %}
+      <span class="bias-tag">{{ article.bias }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+  const CAT_COLORS = {
+    "Politics":      { bg: "#E6F1FB", text: "#0C447C" },
+    "Economy":       { bg: "#EAF3DE", text: "#27500A" },
+    "War & Conflict":{ bg: "#FCEBEB", text: "#791F1F" },
+    "Technology":    { bg: "#EEEDFE", text: "#3C3489" },
+    "Asia":          { bg: "#E1F5EE", text: "#085041" },
+    "Climate":       { bg: "#FAEEDA", text: "#633806" },
+    "Health":        { bg: "#FBEAF0", text: "#72243E" },
+    "General":       { bg: "#F1EFE8", text: "#444441" },
+  };
+
+  document.querySelectorAll('.cat-badge').forEach(badge => {
+    const cat = badge.dataset.cat;
+    if (CAT_COLORS[cat]) {
+      badge.style.background = CAT_COLORS[cat].bg;
+      badge.style.color = CAT_COLORS[cat].text;
+    }
+  });
+
+  document.querySelectorAll('.filter-btn[data-cat]').forEach(btn => {
+    const cat = btn.dataset.cat;
+    if (CAT_COLORS[cat]) {
+      btn.addEventListener('mouseenter', () => { if (!btn.classList.contains('cat-active')) btn.style.background = CAT_COLORS[cat].bg; });
+      btn.addEventListener('mouseleave', () => { if (!btn.classList.contains('cat-active')) btn.style.background = ''; });
+    }
+  });
+
+  function makePlaceholder() {
+    const div = document.createElement('div');
+    div.className = 'card-image-placeholder';
+    div.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+    return div;
+  }
+
+  let activeSource = 'all';
+  let activeCategory = 'all';
+
+  function filterSource(source, btn) {
+    activeSource = source;
+    document.querySelectorAll('.toolbar .filter-btn:not([data-cat])').forEach(b => { b.classList.remove('active'); });
+    btn.classList.add('active');
+    applyFilters();
+  }
+
+  function filterCategory(cat, btn) {
+    activeCategory = cat;
+    document.querySelectorAll('.filter-btn[data-cat]').forEach(b => {
+      b.classList.remove('cat-active', 'active');
+      b.style.background = '';
+      b.style.color = '';
+    });
+    if (cat === 'all') {
+      btn.classList.add('active');
+    } else {
+      btn.classList.add('cat-active');
+      if (CAT_COLORS[cat]) { btn.style.background = CAT_COLORS[cat].text; btn.style.color = 'white'; }
+    }
+    applyFilters();
+  }
+
+  function applyFilters() {
+    const search = document.getElementById('searchBox').value.toLowerCase();
+    const cards = document.querySelectorAll('.card');
+    let visible = 0;
+    cards.forEach(card => {
+      const matchSource = activeSource === 'all' || card.dataset.source === activeSource;
+      const matchCat = activeCategory === 'all' || card.dataset.category === activeCategory;
+      const matchSearch = !search || card.innerText.toLowerCase().includes(search);
+      const show = matchSource && matchCat && matchSearch;
+      card.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    document.getElementById('totalCount').textContent = visible;
+    const grid = document.getElementById('newsGrid');
+    const existing = grid.querySelector('.no-results');
+    if (visible === 0 && !existing) {
+      const msg = document.createElement('div');
+      msg.className = 'no-results';
+      msg.textContent = 'Không tìm thấy bài viết nào.';
+      grid.appendChild(msg);
+    } else if (visible > 0 && existing) {
+      existing.remove();
+    }
+  }
+</script>
+</body>
+</html>
